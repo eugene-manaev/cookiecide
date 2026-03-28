@@ -27,7 +27,7 @@ This is meant for people who want to keep normal sites like YouTube, work apps, 
 Useful flags:
 
 - `--scan-only`: refresh `website_data.txt` without prompting or deleting
-- `--dry-run`: show what would happen without removing or committing
+- `--dry-run`: do not remove from Safari or commit, but still update local files to show the resulting state
 - `--no-commit`: update files without creating a git commit
 
 ## Notes

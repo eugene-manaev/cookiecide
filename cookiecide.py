@@ -405,7 +405,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--dry-run",
         action="store_true",
-        help="Show what would happen without removing from Safari or committing.",
+        help="Do not remove from Safari or commit, but still update local files to show the resulting state.",
     )
     parser.add_argument(
         "--no-commit",
