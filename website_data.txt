@@ -1,3 +1,4 @@
+4pda.to
 amazon.co.uk
 avatars.githubusercontent.com
 awswaf.com
@@ -8,8 +9,11 @@ google.co.uk
 google.com
 google.ru
 googleusercontent.com
+googlevideo.com
 gstatic.com
 media-amazon.com
+moneysavingexpert.com
 siege-amazon.com
 ssl-images-amazon.com
+yandex.ru
 youtube.com
