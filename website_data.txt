@@ -1,0 +1,15 @@
+amazon.co.uk
+avatars.githubusercontent.com
+awswaf.com
+fonts.googleapis.com
+github.com
+githubassets.com
+google.co.uk
+google.com
+google.ru
+googleusercontent.com
+gstatic.com
+media-amazon.com
+siege-amazon.com
+ssl-images-amazon.com
+youtube.com
