@@ -4,7 +4,7 @@ This directory contains a Safari website-data triage workflow.
 
 ## Files
 
-- `cookiecide.py`: interactive CLI that inventories Safari website-data domains, removes blacklisted entries through Safari's own Website Data dialog, prompts on newly seen domains, updates tracked files, and commits the result.
+- `cookiecide.py`: CLI that inventories Safari website-data domains, removes blacklisted entries through Safari's own Website Data dialog, classifies newly seen domains with OpenAI, updates tracked files, and commits the result.
 - `blacklist.txt`: one domain per line. Any domain in this file is treated as junk and removed from Safari on the next run.
 - `website_data.txt`: sorted inventory of currently known Safari website-data domains after blacklist removals.
 
@@ -19,7 +19,8 @@ This directory contains a Safari website-data triage workflow.
 7. The script should:
    - collect the current domain inventory from Safari's `Manage Website Data…` UI list
    - remove any currently blacklisted entries from Safari
-   - prompt the user on newly seen domains with a yes/no/help blacklist decision
+   - classify newly seen domains with OpenAI and use the result by default
+   - fall back to a manual yes/no decision only if the OpenAI call fails
    - remove newly blacklisted entries from Safari
    - update `blacklist.txt` and `website_data.txt`
    - commit those two files if they changed

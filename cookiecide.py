@@ -4,8 +4,11 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import subprocess
 import sys
+import urllib.error
+import urllib.request
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Iterable
@@ -14,6 +17,8 @@ from typing import Iterable
 ROOT = Path(__file__).resolve().parent
 BLACKLIST_PATH = ROOT / "blacklist.txt"
 INVENTORY_PATH = ROOT / "website_data.txt"
+HELPER_DEBUG_LOG = ROOT / "openai-helper.log"
+OPENAI_MODEL = "gpt-5.4-mini"
 
 EXCLUDED_SUFFIXES = (
     ".local",
@@ -186,7 +191,20 @@ def write_lines(path: Path, lines: Iterable[str]) -> None:
     path.write_text(text)
 
 
-def ask_codex_about_domain(domain: str) -> CodexDecision:
+def append_helper_debug_log(domain: str, request_body: str, response_body: str, note: str) -> None:
+    with HELPER_DEBUG_LOG.open("a") as fh:
+        fh.write(f"domain: {domain}\n")
+        fh.write(f"note: {note}\n")
+        if request_body:
+            fh.write("request:\n")
+            fh.write(request_body.rstrip() + "\n")
+        if response_body:
+            fh.write("response:\n")
+            fh.write(response_body.rstrip() + "\n")
+        fh.write("---\n")
+
+
+def ask_openai_about_domain(domain: str) -> CodexDecision:
     prompt = f"""
 You are classifying a Safari website-data domain for a blacklist.
 
@@ -195,63 +213,92 @@ Domain: {domain}
 Rule:
 - Return "y" if this domain should be blacklisted and removed.
 - Return "n" if this domain should be kept.
-- Keep trustworthy mainstream websites and legitimate infrastructure with normal cookie/storage usage.
+- Do not keep a domain just because it looks legitimate.
+- Keep a domain only if it is both trustworthy and there is a clear, reasonable need for cookie or local storage usage.
+- If the site looks legitimate but there is no obvious reason it needs browser storage, prefer "y".
 - Blacklist obvious adtech, trackers, coupon junk, low-trust widgets, suspicious domains, and random marketing tech.
 
 Reply as JSON only:
 {{"decision":"y|n","reason":"short reason"}}
 """.strip()
 
-    proc = subprocess.run(
-        [
-            "codex",
-            "exec",
-            "--skip-git-repo-check",
-            "--sandbox",
-            "read-only",
-            "--json",
-            prompt,
+    api_key = os.environ.get("OPENAI_API_KEY", "").strip()
+    if not api_key:
+        raise RuntimeError("OPENAI_API_KEY is not set")
+
+    request_payload = {
+        "model": OPENAI_MODEL,
+        "messages": [
+            {
+                "role": "user",
+                "content": prompt,
+            }
         ],
-        text=True,
-        capture_output=True,
-        check=False,
-        cwd=ROOT,
+        "response_format": {"type": "json_object"},
+    }
+    request_body = json.dumps(request_payload)
+
+    print(f"Asking OpenAI about {domain} with {OPENAI_MODEL}...")
+    request = urllib.request.Request(
+        "https://api.openai.com/v1/chat/completions",
+        data=request_body.encode("utf-8"),
+        headers={
+            "Authorization": f"Bearer {api_key}",
+            "Content-Type": "application/json",
+        },
+        method="POST",
     )
 
-    if proc.returncode != 0:
-        stderr = proc.stderr.strip() or proc.stdout.strip()
-        raise RuntimeError(stderr or "Codex classification failed")
+    try:
+        with urllib.request.urlopen(request, timeout=30) as response:
+            response_body = response.read().decode("utf-8")
+    except urllib.error.HTTPError as exc:
+        response_body = exc.read().decode("utf-8", errors="replace")
+        append_helper_debug_log(domain, request_body, response_body, f"http-error={exc.code}")
+        raise RuntimeError(
+            f"OpenAI helper failed with HTTP {exc.code}. See {HELPER_DEBUG_LOG.name} for details."
+        ) from exc
+    except urllib.error.URLError as exc:
+        append_helper_debug_log(domain, request_body, str(exc), "url-error")
+        raise RuntimeError(
+            f"OpenAI helper failed to connect. See {HELPER_DEBUG_LOG.name} for details."
+        ) from exc
+    except TimeoutError as exc:
+        append_helper_debug_log(domain, request_body, "", "timeout")
+        raise RuntimeError(
+            f"OpenAI helper timed out after 30s. See {HELPER_DEBUG_LOG.name} for details."
+        ) from exc
 
-    last_text = ""
-    for line in proc.stdout.splitlines():
-        line = line.strip()
-        if not line:
-            continue
-        try:
-            event = json.loads(line)
-        except json.JSONDecodeError:
-            continue
-        if event.get("type") == "agent_message_delta":
-            delta = event.get("delta", "")
-            if isinstance(delta, str):
-                last_text += delta
-        elif event.get("type") == "agent_message":
-            message = event.get("message")
-            if isinstance(message, str):
-                last_text = message
-
-    if not last_text.strip():
-        raise RuntimeError("Codex returned no classification output")
+    append_helper_debug_log(domain, request_body, response_body, "ok")
 
     try:
-        payload = json.loads(last_text.strip())
+        payload = json.loads(response_body)
     except json.JSONDecodeError as exc:
-        raise RuntimeError(f"Codex returned invalid JSON: {last_text.strip()}") from exc
+        raise RuntimeError(
+            f"OpenAI helper returned invalid JSON. See {HELPER_DEBUG_LOG.name} for details."
+        ) from exc
+
+    choices = payload.get("choices")
+    if not isinstance(choices, list) or not choices:
+        raise RuntimeError(f"OpenAI helper returned no choices. See {HELPER_DEBUG_LOG.name} for details.")
+
+    message = choices[0].get("message", {})
+    last_text = str(message.get("content", "")).strip()
+
+    if not last_text:
+        raise RuntimeError(f"OpenAI helper returned no final message. See {HELPER_DEBUG_LOG.name} for details.")
+
+    try:
+        payload = json.loads(last_text)
+    except json.JSONDecodeError as exc:
+        raise RuntimeError(
+            f"OpenAI helper returned invalid JSON content. See {HELPER_DEBUG_LOG.name} for details."
+        ) from exc
 
     decision = str(payload.get("decision", "")).strip().lower()
     reason = str(payload.get("reason", "")).strip()
     if decision not in {"y", "n"}:
-        raise RuntimeError(f"Codex returned invalid decision: {decision!r}")
+        raise RuntimeError(f"OpenAI helper returned invalid decision: {decision!r}")
     return CodexDecision(decision=decision, reason=reason)
 
 def collect_inventory() -> list[str]:
@@ -299,33 +346,31 @@ def remove_domains(domains: Iterable[str], dry_run: bool) -> list[RemovalResult]
     return results
 
 
-def prompt_for_new_domains(domains: Iterable[str]) -> tuple[list[str], list[str]]:
+def review_new_domains(domains: Iterable[str]) -> tuple[list[str], list[str]]:
     blacklist_additions: list[str] = []
     whitelist_additions: list[str] = []
 
     for domain in domains:
-        while True:
-            reply = input(f"Blacklist and delete '{domain}' from Safari? [y/N/h] ").strip().lower()
-            if reply in ("", "n", "no"):
-                whitelist_additions.append(domain)
-                break
-            if reply in ("y", "yes"):
-                blacklist_additions.append(domain)
-                break
-            if reply in ("h", "help"):
-                try:
-                    decision = ask_codex_about_domain(domain)
-                except RuntimeError as err:
-                    print(f"Codex helper failed: {err}")
-                    continue
-
-                print(f"Codex: {decision.decision.upper()} - {decision.reason}")
-                if decision.decision == "y":
-                    blacklist_additions.append(domain)
-                else:
+        try:
+            decision = ask_openai_about_domain(domain)
+        except RuntimeError as err:
+            print(f"OpenAI helper failed for {domain}: {err}")
+            while True:
+                reply = input(f"Fallback decision for '{domain}' [y/N] ").strip().lower()
+                if reply in ("", "n", "no"):
                     whitelist_additions.append(domain)
-                break
-            print("Please answer y, n, or h.")
+                    break
+                if reply in ("y", "yes"):
+                    blacklist_additions.append(domain)
+                    break
+                print("Please answer y or n.")
+            continue
+
+        print(f"OpenAI: {domain}: {decision.decision.upper()} - {decision.reason}")
+        if decision.decision == "y":
+            blacklist_additions.append(domain)
+        else:
+            whitelist_additions.append(domain)
 
     return blacklist_additions, whitelist_additions
 
@@ -415,7 +460,7 @@ def main() -> int:
 
     blacklist_additions: list[str] = []
     if new_domains:
-        blacklist_additions, _ = prompt_for_new_domains(new_domains)
+        blacklist_additions, _ = review_new_domains(new_domains)
         if blacklist_additions:
             blacklist.update(blacklist_additions)
             write_lines(BLACKLIST_PATH, blacklist)
