@@ -16,6 +16,12 @@ When you run the script, it:
 5. adds newly rejected domains to the blacklist
 6. updates the tracked files and commits the result
 
+During review prompts:
+
+- `y`: blacklist and remove the domain
+- `n`: keep the domain
+- `h`: ask Codex for a one-shot keep/blacklist recommendation
+
 This is meant for people who want to keep normal sites like YouTube, work apps, and banking sites, while repeatedly deleting random trackers, chat widgets, coupon junk, and other low-value domains.
 
 ## Usage
@@ -35,3 +41,4 @@ Useful flags:
 - The script uses Safari UI automation through `osascript` and `System Events`.
 - Your terminal app may need macOS Accessibility permission.
 - Deletion is done through Safari's own Website Data dialog, not by deleting WebKit storage files directly.
+- The `h` helper uses the local `codex` CLI and expects you to already be logged in.

@@ -19,7 +19,7 @@ This directory contains a Safari website-data triage workflow.
 7. The script should:
    - collect the current domain inventory from Safari's `Manage Website Data…` UI list
    - remove any currently blacklisted entries from Safari
-   - prompt the user on newly seen domains with a yes/no blacklist decision
+   - prompt the user on newly seen domains with a yes/no/help blacklist decision
    - remove newly blacklisted entries from Safari
    - update `blacklist.txt` and `website_data.txt`
    - commit those two files if they changed

@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import argparse
+import json
 import subprocess
 import sys
 from dataclasses import dataclass
@@ -135,6 +136,12 @@ class RemovalResult:
     status: str
 
 
+@dataclass
+class CodexDecision:
+    decision: str
+    reason: str
+
+
 def run_applescript(body: str) -> str:
     script = APPLE_SCRIPT + "\n" + body
     proc = subprocess.run(
@@ -177,6 +184,75 @@ def write_lines(path: Path, lines: Iterable[str]) -> None:
     if normalized:
         text += "\n"
     path.write_text(text)
+
+
+def ask_codex_about_domain(domain: str) -> CodexDecision:
+    prompt = f"""
+You are classifying a Safari website-data domain for a blacklist.
+
+Domain: {domain}
+
+Rule:
+- Return "y" if this domain should be blacklisted and removed.
+- Return "n" if this domain should be kept.
+- Keep trustworthy mainstream websites and legitimate infrastructure with normal cookie/storage usage.
+- Blacklist obvious adtech, trackers, coupon junk, low-trust widgets, suspicious domains, and random marketing tech.
+
+Reply as JSON only:
+{{"decision":"y|n","reason":"short reason"}}
+""".strip()
+
+    proc = subprocess.run(
+        [
+            "codex",
+            "exec",
+            "--skip-git-repo-check",
+            "--sandbox",
+            "read-only",
+            "--json",
+            prompt,
+        ],
+        text=True,
+        capture_output=True,
+        check=False,
+        cwd=ROOT,
+    )
+
+    if proc.returncode != 0:
+        stderr = proc.stderr.strip() or proc.stdout.strip()
+        raise RuntimeError(stderr or "Codex classification failed")
+
+    last_text = ""
+    for line in proc.stdout.splitlines():
+        line = line.strip()
+        if not line:
+            continue
+        try:
+            event = json.loads(line)
+        except json.JSONDecodeError:
+            continue
+        if event.get("type") == "agent_message_delta":
+            delta = event.get("delta", "")
+            if isinstance(delta, str):
+                last_text += delta
+        elif event.get("type") == "agent_message":
+            message = event.get("message")
+            if isinstance(message, str):
+                last_text = message
+
+    if not last_text.strip():
+        raise RuntimeError("Codex returned no classification output")
+
+    try:
+        payload = json.loads(last_text.strip())
+    except json.JSONDecodeError as exc:
+        raise RuntimeError(f"Codex returned invalid JSON: {last_text.strip()}") from exc
+
+    decision = str(payload.get("decision", "")).strip().lower()
+    reason = str(payload.get("reason", "")).strip()
+    if decision not in {"y", "n"}:
+        raise RuntimeError(f"Codex returned invalid decision: {decision!r}")
+    return CodexDecision(decision=decision, reason=reason)
 
 def collect_inventory() -> list[str]:
     open_website_data_sheet()
@@ -229,14 +305,27 @@ def prompt_for_new_domains(domains: Iterable[str]) -> tuple[list[str], list[str]
 
     for domain in domains:
         while True:
-            reply = input(f"Blacklist and delete '{domain}' from Safari? [y/N] ").strip().lower()
+            reply = input(f"Blacklist and delete '{domain}' from Safari? [y/N/h] ").strip().lower()
             if reply in ("", "n", "no"):
                 whitelist_additions.append(domain)
                 break
             if reply in ("y", "yes"):
                 blacklist_additions.append(domain)
                 break
-            print("Please answer y or n.")
+            if reply in ("h", "help"):
+                try:
+                    decision = ask_codex_about_domain(domain)
+                except RuntimeError as err:
+                    print(f"Codex helper failed: {err}")
+                    continue
+
+                print(f"Codex: {decision.decision.upper()} - {decision.reason}")
+                if decision.decision == "y":
+                    blacklist_additions.append(domain)
+                else:
+                    whitelist_additions.append(domain)
+                break
+            print("Please answer y, n, or h.")
 
     return blacklist_additions, whitelist_additions
 
@@ -266,7 +355,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--scan-only",
         action="store_true",
-        help="Refresh website_data.txt from Safari backing stores without prompting, removing, or committing.",
+        help="Refresh website_data.txt from Safari's Website Data UI list without prompting, removing, or committing.",
     )
     parser.add_argument(
         "--dry-run",
