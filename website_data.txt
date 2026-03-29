@@ -2,6 +2,10 @@
 amazon.co.uk
 avatars.githubusercontent.com
 awswaf.com
+bing.com
+ebay.co.uk
+ebay.com
+ebaystatic.com
 fonts.googleapis.com
 github.com
 githubassets.com
@@ -16,8 +20,12 @@ media-amazon.com
 moneysavingexpert.com
 paypal.com
 pinterest.com
+reddit.com
+redditstatic.com
+screwfix.com
 siege-amazon.com
 ssl-images-amazon.com
+tiktok.com
 twitter.com
 yandex.ru
 youtube.com

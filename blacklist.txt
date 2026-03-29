@@ -1,3 +1,4 @@
+192.168.1.1
 2mdn.net
 a-mo.net
 ad-delivery.net
@@ -22,6 +23,8 @@ celtra.com
 chartbeat.com
 clarity.ms
 cloudflareinsights.com
+clrt.ai
+confirmit.com
 contentsquare.net
 cookiebot.com
 cookielaw.org
@@ -39,6 +42,8 @@ doofinder.com
 doubleclick.net
 doubleverify.com
 dwin1.com
+ebay-us.com
+ebayimg.com
 emxdgt.com
 facebook.net
 fastclick.net
@@ -81,6 +86,7 @@ onetrust.com
 onwebchat.com
 openwebmp.com
 openx.net
+optimizely.com
 outbrain.com
 paypalobjects.com
 podium-solutions.co.uk
@@ -102,6 +108,8 @@ streo.co
 syntheticfilter.com
 taboola.com
 tawk.to
+thisisdax.com
+tiqcdn.com
 tmuxai.dev
 trackjs.com
 trustarc.com
