@@ -35,11 +35,14 @@ csp.withgoogle.com
 d5glw3nnbe3pc.cloudfront.net
 diffusion-group.com
 dns-finder.com
+doofinder.com
 doubleclick.net
 doubleverify.com
 dwin1.com
 emxdgt.com
+facebook.net
 fastclick.net
+fbcdn.net
 featureassets.org
 flashtalking.com
 ggpht.com
@@ -79,6 +82,7 @@ onwebchat.com
 openwebmp.com
 openx.net
 outbrain.com
+paypalobjects.com
 podium-solutions.co.uk
 posthog.com
 privacymanager.io
@@ -91,7 +95,10 @@ segment.com
 shopifysvc.com
 sitescout.com
 smartadserver.com
+solmer.co.uk
+stereo.com
 streetviewpixels-pa.googleapis.com
+streo.co
 syntheticfilter.com
 taboola.com
 tawk.to
@@ -99,6 +106,7 @@ tmuxai.dev
 trackjs.com
 trustarc.com
 truste.com
+trustpilot.com
 typekit.net
 visualwebsiteoptimizer.com
 website-files.com

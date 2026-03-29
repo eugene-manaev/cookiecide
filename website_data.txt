@@ -11,9 +11,13 @@ google.ru
 googleusercontent.com
 googlevideo.com
 gstatic.com
+linkedin.com
 media-amazon.com
 moneysavingexpert.com
+paypal.com
+pinterest.com
 siege-amazon.com
 ssl-images-amazon.com
+twitter.com
 yandex.ru
 youtube.com
