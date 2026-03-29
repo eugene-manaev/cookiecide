@@ -15,9 +15,13 @@ google.ru
 googleusercontent.com
 googlevideo.com
 gstatic.com
+klarna.com
 linkedin.com
+maps.googleapis.com
 media-amazon.com
 moneysavingexpert.com
+newrelic.com
+niceincontact.com
 paypal.com
 pinterest.com
 reddit.com
