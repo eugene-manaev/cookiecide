@@ -39,6 +39,7 @@ cdn-apple.com
 cdn-cookieyes.com
 celtra.com
 chartbeat.com
+cilantroeng.co.uk
 clarity.ms
 clixtell.com
 cloudflareinsights.com
@@ -102,6 +103,7 @@ googlesyndication.com
 googletagmanager.com
 gorgias.chat
 hadronid.net
+haes-tech.com
 hailo-shop.co.uk
 havwoods.com
 heapanalytics.com
@@ -213,6 +215,7 @@ videoly.net
 visualwebsiteoptimizer.com
 vitsoe.com
 website-files.com
+who.is
 wisepops.net
 wp.com
 yandex.net
