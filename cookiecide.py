@@ -27,6 +27,28 @@ EXCLUDED_SUFFIXES = (
 
 
 APPLE_SCRIPT = r"""
+on waitForWebsiteDataReady()
+  tell application "System Events"
+    tell process "Safari"
+      if not (exists sheet 1 of front window) then error "Safari Website Data sheet did not open."
+      repeat 80 times
+        tell sheet 1 of front window
+          set isLoading to false
+          try
+            if exists static text "Loading Website Data..." then set isLoading to true
+          end try
+          try
+            if exists static text "Loading Website Data…" then set isLoading to true
+          end try
+          if not isLoading then return "ready"
+        end tell
+        delay 0.25
+      end repeat
+      error "Safari Website Data sheet is still loading."
+    end tell
+  end tell
+end waitForWebsiteDataReady
+
 on openWebsiteDataSheet()
   tell application "Safari" to activate
   tell application "System Events"
@@ -36,14 +58,14 @@ on openWebsiteDataSheet()
       click menu item "Settings…" of menu "Safari" of menu bar item "Safari" of menu bar 1
       delay 0.8
       if not (exists front window) then error "Safari settings window did not open."
-      if name of front window is not "Privacy" then
+      try
+        click radio button "Privacy" of toolbar 1 of front window
+      on error
         try
-          click radio button "Privacy" of toolbar 1 of front window
-          delay 0.5
-        on error
-          error "Safari Settings opened, but the Privacy pane could not be selected automatically."
+          click button "Privacy" of toolbar 1 of front window
         end try
-      end if
+      end try
+      delay 0.5
       try
         click button "Manage Website Data…" of group 1 of group 1 of front window
         delay 0.6
@@ -51,9 +73,9 @@ on openWebsiteDataSheet()
         error "Safari Privacy pane is open, but the Manage Website Data button could not be clicked automatically."
       end try
       if not (exists sheet 1 of front window) then error "Safari Website Data sheet did not open."
-      return "opened"
     end tell
   end tell
+  return waitForWebsiteDataReady()
 end openWebsiteDataSheet
 
 on closeWebsiteDataSheet()
@@ -70,6 +92,7 @@ on closeWebsiteDataSheet()
 end closeWebsiteDataSheet
 
 on removeDomain(targetDomain)
+  waitForWebsiteDataReady()
   tell application "System Events"
     tell process "Safari"
       tell sheet 1 of front window
@@ -97,6 +120,7 @@ on removeDomain(targetDomain)
 end removeDomain
 
 on countMatches(targetDomain)
+  waitForWebsiteDataReady()
   tell application "System Events"
     tell process "Safari"
       tell sheet 1 of front window
@@ -111,6 +135,7 @@ on countMatches(targetDomain)
 end countMatches
 
 on listWebsiteDataDomains()
+  waitForWebsiteDataReady()
   tell application "System Events"
     tell process "Safari"
       tell sheet 1 of front window
