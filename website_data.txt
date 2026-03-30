@@ -1,3 +1,4 @@
+192.168.1.1
 4pda.to
 aliexpress.com
 aliexpress.us
@@ -31,6 +32,7 @@ justanswer.co.uk
 justanswer.com
 klarna.com
 linkedin.com
+linksys.com
 maps.googleapis.com
 media-amazon.com
 moneysavingexpert.com
